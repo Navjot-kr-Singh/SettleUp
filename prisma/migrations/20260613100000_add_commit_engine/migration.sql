@@ -1,0 +1,20 @@
+-- Phase 6: Add Commit Engine Schema Changes
+
+-- AlterEnum: Add COMMITTING status
+ALTER TYPE "ImportSessionStatus" ADD VALUE 'COMMITTING';
+
+-- AlterEnum: Add commit-related audit action types
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_PARSE';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_ANALYZE';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_PROPOSAL_GENERATION';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_BALANCE_SIMULATION';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_START';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_EXPENSE_CREATED';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_SETTLEMENT_CREATED';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_BALANCE_REBUILT';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_COMPLETE';
+ALTER TYPE "AuditActionType" ADD VALUE 'IMPORT_COMMIT_FAILED';
+
+-- AlterTable: Add commit metadata to ImportSession
+ALTER TABLE "ImportSession" ADD COLUMN "committedAt" TIMESTAMP(3);
+ALTER TABLE "ImportSession" ADD COLUMN "committedBy" TEXT;

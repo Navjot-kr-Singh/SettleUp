@@ -1,0 +1,325 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  MEMBER
+  GUEST
+}
+
+enum MembershipEventType {
+  JOIN
+  LEAVE
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ImportSessionStatus {
+  PENDING
+  UPLOADED
+  PARSING
+  ANALYZED
+  REVIEW_REQUIRED
+  APPROVED
+  COMMITTING
+  COMMITTED
+  REJECTED
+  TERMINATED
+  FAILED
+}
+
+enum AnomalySeverity {
+  INFO
+  WARNING
+  ERROR
+  REVIEW_REQUIRED
+}
+
+enum AuditActionType {
+  CREATE_EXPENSE
+  UPDATE_EXPENSE
+  DELETE_EXPENSE
+  CREATE_SETTLEMENT
+  UPDATE_SETTLEMENT
+  DELETE_SETTLEMENT
+  CREATE_GROUP
+  UPDATE_GROUP
+  DELETE_GROUP
+  MEMBER_JOIN
+  MEMBER_LEAVE
+  IMPORT_START
+  IMPORT_COMPLETE
+  IMPORT_FAILED
+  IMPORT_PARSE
+  IMPORT_ANALYZE
+  IMPORT_PROPOSAL_GENERATION
+  IMPORT_BALANCE_SIMULATION
+  IMPORT_COMMIT_START
+  IMPORT_COMMIT_EXPENSE_CREATED
+  IMPORT_COMMIT_SETTLEMENT_CREATED
+  IMPORT_COMMIT_BALANCE_REBUILT
+  IMPORT_COMMIT_COMPLETE
+  IMPORT_COMMIT_FAILED
+  ANOMALY_DETECTED
+  ANOMALY_RESOLVED
+  PROPOSAL_CREATED
+  PROPOSAL_APPROVED
+  PROPOSAL_REJECTED
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  name                String
+  email               String?              @unique
+  passwordHash        String?              // Nullable for guests
+  isGuest             Boolean              @default(false)
+  role                UserRole             @default(MEMBER)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         GroupMembership[]
+  membershipHistory   MembershipHistory[]
+  expensesPaid        Expense[]            @relation("PaidBy")
+  splits              ExpenseParticipant[]
+  sentSettlements     Settlement[]         @relation("SettlementSender")
+  receivedSettlements Settlement[]         @relation("SettlementReceiver")
+  auditLogs           AuditLog[]
+  approvedProposals   DataChangeProposal[] @relation("ApprovedBy")
+}
+
+model Group {
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         GroupMembership[]
+  membershipHistory   MembershipHistory[]
+  expenses            Expense[]
+  settlements         Settlement[]
+  balanceSnapshots    BalanceSnapshot[]
+}
+
+model GroupMembership {
+  id        String    @id @default(uuid())
+  groupId   String
+  userId    String
+  joinedAt  DateTime  @default(now())
+  leftAt    DateTime?
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+model MembershipHistory {
+  id        String              @id @default(uuid())
+  groupId   String
+  userId    String
+  eventDate DateTime
+  eventType MembershipEventType
+  notes     String?
+  group     Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Expense {
+  id                  String               @id @default(uuid())
+  groupId             String
+  paidById            String
+  description         String
+  originalAmount      Decimal              @db.Decimal(12, 4)
+  originalCurrency    String
+  exchangeRate        Decimal              @db.Decimal(10, 6) @default(1.0)
+  baseCurrencyAmount  Decimal              @db.Decimal(12, 4) // converted to INR
+  date                DateTime
+  splitType           SplitType
+  notes               String?
+  deletedAt           DateTime?            // Soft delete field
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  group               Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  paidBy              User                 @relation("PaidBy", fields: [paidById], references: [id])
+  participants        ExpenseParticipant[]
+  importRecordId      String?
+  importRecord        ImportRecord?        @relation(fields: [importRecordId], references: [id])
+
+  @@index([groupId])
+  @@index([date])
+}
+
+model ExpenseParticipant {
+  id                  String   @id @default(uuid())
+  expenseId           String
+  userId              String
+  shareValue          Decimal? @db.Decimal(12, 4) // Input percentage, share count, or raw amount
+  calculatedAmount    Decimal  @db.Decimal(12, 4) // Owed in base currency (INR)
+  expense             Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, userId])
+  @@index([userId])
+}
+
+model Settlement {
+  id                  String   @id @default(uuid())
+  groupId             String
+  senderId            String
+  receiverId          String
+  amount              Decimal  @db.Decimal(12, 4)
+  currency            String
+  exchangeRate        Decimal  @db.Decimal(10, 6) @default(1.0)
+  baseCurrencyAmount  Decimal  @db.Decimal(12, 4)
+  date                DateTime
+  notes               String?
+  createdAt           DateTime @default(now())
+  group               Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender              User     @relation("SettlementSender", fields: [senderId], references: [id])
+  receiver            User     @relation("SettlementReceiver", fields: [receiverId], references: [id])
+  importRecordId      String?
+  importRecord        ImportRecord? @relation(fields: [importRecordId], references: [id])
+
+  @@index([groupId])
+  @@index([date])
+}
+
+model Currency {
+  code      String   @id // e.g. "INR", "USD"
+  name      String
+  symbol    String?
+}
+
+model ExchangeRate {
+  id            String   @id @default(uuid())
+  fromCurrency  String
+  toCurrency    String   @default("INR")
+  rate          Decimal  @db.Decimal(10, 6)
+  effectiveDate DateTime
+  createdAt     DateTime @default(now())
+}
+
+model ImportSession {
+  id           String               @id @default(uuid())
+  groupId      String
+  fileName     String
+  fileHash     String?
+  status       ImportSessionStatus
+  uploadedAt   DateTime             @default(now())
+  committedAt  DateTime?
+  committedBy  String?
+  records      ImportRecord[]
+  anomalies    ImportAnomaly[]
+  proposals    DataChangeProposal[]
+  auditLogs    AuditLog[]
+
+  @@unique([groupId, fileHash])
+}
+
+model ImportRecord {
+  id              String               @id @default(uuid())
+  sessionId       String
+  rowNumber       Int
+  rawContent      Json                 // The exact original CSV line values as an array
+  normalizedData  Json?                // The parsed, standardized fields before approval
+  status          String               // "PENDING" | "IMPORTED" | "REJECTED"
+  fingerprint     String?              // Renamed from recordFingerprint
+  session         ImportSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  expenses        Expense[]
+  settlements     Settlement[]
+  anomalies       ImportAnomaly[]
+  proposals       DataChangeProposal[]
+
+  @@index([sessionId])
+  @@index([fingerprint])
+}
+
+model ImportAnomaly {
+  id              String          @id @default(uuid())
+  sessionId       String
+  recordId        String?
+  rowNumber       Int
+  severity        AnomalySeverity
+  type            String          // e.g. "DUPLICATE_EXPENSE", "MISSING_PAYER", "INVALID_DATE"
+  description     String
+  isResolved      Boolean         @default(false)
+  session         ImportSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  record          ImportRecord?   @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+}
+
+model DataChangeProposal {
+  id                 String         @id @default(uuid())
+  sessionId          String
+  recordId           String?
+  rowNumber          Int
+  field              String         // "date" | "paid_by" | "amount" | "currency" | "split_type" | "split_with" | "split_details"
+  originalValue      String
+  proposedValue      String
+  reason             String
+  status             ProposalStatus @default(PENDING)
+  resolvedValue      String?
+  approvedById       String?
+  approvedBy         User?          @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedAt         DateTime?
+  session            ImportSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  record             ImportRecord?  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  auditLogs          AuditLog[]
+
+  @@index([recordId])
+}
+
+model AuditLog {
+  id              String              @id @default(uuid())
+  userId          String?
+  action          AuditActionType
+  timestamp       DateTime            @default(now())
+  entityType      String
+  entityId        String
+  beforeState     Json?
+  afterState      Json?
+  changedFields   Json?
+  metadata        Json?
+  correlationId   String
+  importSessionId String?
+  proposalId      String?
+  notes           String?
+  user            User?               @relation(fields: [userId], references: [id])
+  importSession   ImportSession?      @relation(fields: [importSessionId], references: [id])
+  proposal        DataChangeProposal? @relation(fields: [proposalId], references: [id])
+}
+
+model BalanceSnapshot {
+  id          String   @id @default(uuid())
+  groupId     String
+  balances    Json     // Detailed pre-computed balances JSON for quick retrieval
+  version     Int      // Incremental version number
+  isCurrent   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([groupId, isCurrent])
+}
+
