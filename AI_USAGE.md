@@ -1,55 +1,144 @@
-# AI Assistant Usage Log: SettleUp Platform
+AI Tools Used
 
-This log documents the usage of AI code assistants (specifically **Antigravity**) during the architectural design, implementation phases, compliance auditing, and testing of the SettleUp Shared Expenses platform.
+Primary AI Tools:
 
----
+* ChatGPT
+* Claude (Anthropic)
 
-## AI Collaboration Log
+These tools were used as development assistants for planning, debugging, code reviews, architecture discussions, testing support, and documentation. All generated outputs were reviewed, modified where necessary, and validated before being incorporated into the project.
 
-### 1. Phase 1 - 4: Core Engine Development
-* **AI Tool**: Antigravity
-* **Tasks Delegated**:
-  - Implementation of split strategies (Equal, Exact, Percentage, Shares) utilizing the Strategy Pattern.
-  - Setup of exchange rates conversion algorithm based on closest historical effective date.
-  - Architecture and implementation of date-aware membership interval calculation services.
-  - Centralized, fail-safe auditing logger with before/after state comparison and request correlation tags.
-  - Balance cached snapshot versioning and greedy pointers matching debt minimization matching algorithm.
-* **Review Process**: AI-generated logic and algorithms were reviewed against automated unit tests and architectural constraints.
+⸻
 
-### 2. Phase 5: CSV Import Engine (Dry Run)
-* **AI Tool**: Antigravity
-* **Tasks Delegated**:
-  - Drafting of 16 anomaly detector plugins enforcing formatting, currency validation, sum checks, date checks, and duplicate matching.
-  - CSV parser stage parsing double quotes and line boundaries.
-  - Staging database models and proposals structure.
-* **Review Process**: Tested through 32 automated unit tests verifying isolation (zero writes to production financial tables during dry-run) and state transitions.
+How AI Was Used During Development
 
-### 3. Phase 6: Production Ingestion Commit Engine
-* **AI Tool**: Antigravity
-* **Tasks Delegated**:
-  - Construction of 7-step atomic database transactional commit pipeline.
-  - Handling locks and idempotency transitions to prevent concurrent commits.
-  - Logging of commit audit trail events.
-* **Review Process**: Verified against 19 test cases in `commit.test.ts` focusing on rollback safety, idempotency, and balance rebuilding.
+Project Planning
 
-### 4. Phase 7: Compliance Audit, Shell Layout & Frontend UI
-* **AI Tool**: Antigravity
-* **Tasks Delegated**:
-  - Compliance audit evaluating implementation against specifications and missing elements.
-  - Implementing group endpoints `/api/groups`, `/api/groups/[id]`, `/api/groups/[id]/members`.
-  - Implementing shared authentication session guards layout (`ShellLayout.tsx`, dark mode syncing, auth redirection logic).
-  - Creating client UI dashboards (`/dashboard`), workspaces (`/groups`), detail views, CSV file uploader widget (`FileUpload.tsx`), visual governance queue cards (`ProposalCard.tsx`, `ReviewQueue.tsx`), and step-by-step chronology trackers (`ExplainerCard.tsx`).
-  - Playwright browser E2E test suites automation.
-* **Review Process**: Executed via Playwright browser visual tests and manual staging uploads verification.
+AI was used to:
 
-### 5. Phase 8: Public User Registration & Self-Service Authentication
-* **AI Tool**: Antigravity
-* **Tasks Delegated**:
-  - Database schema changes (nullable passwordHash, isGuest constraint, nullable email).
-  - Updating seeding logic to use 12-round bcrypt hash values and emails.
-  - Adjusting user repository and services to support guest placeholders and passwordHash queries.
-  - Implementing NextAuth credential validation with email lookup and guest login rejection.
-  - Creating `/signup` visual component and connecting email-only auth routes.
-  - Verification testing setup (Vitest unit tests, Playwright Flow A/B/E regression tests).
-* **Review Process**: Verified via 131 passing Vitest unit tests, 7 passing Playwright browser E2E workflows, and Next.js production builds verification.
+* Break down the assignment into development phases.
+* Discuss possible database designs.
+* Evaluate approaches for handling changing group membership.
+* Review implementation plans before coding.
 
+Final architectural decisions were made after comparing alternatives and validating them against the assignment requirements.
+
+⸻
+
+Backend Development
+
+AI assisted with:
+
+* Reviewing Prisma schema designs.
+* Suggesting approaches for implementing Equal, Percentage, Exact, and Share split types.
+* Discussing balance calculation strategies.
+* Reviewing API route structures.
+* Identifying edge cases in financial calculations.
+
+All business logic and financial calculations were manually reviewed and verified through testing.
+
+⸻
+
+CSV Import & Anomaly Detection
+
+AI was used to:
+
+* Brainstorm possible anomalies in the provided CSV.
+* Suggest validation strategies for dates, currencies, duplicates, settlements, and membership conflicts.
+* Review importer workflows and dry-run architecture.
+
+The final anomaly handling policies were chosen and documented manually.
+
+⸻
+
+Frontend Development
+
+AI assisted with:
+
+* UI structure suggestions.
+* Component organization.
+* Form validation logic.
+* Accessibility improvements.
+* Responsive design recommendations.
+
+The final interface was customized and refined manually.
+
+⸻
+
+Testing & Deployment
+
+AI was used to:
+
+* Suggest unit and integration test scenarios.
+* Review Playwright test coverage.
+* Diagnose build and deployment issues.
+* Assist in debugging authentication and database configuration problems.
+
+All fixes were verified through local testing and deployment validation.
+
+⸻
+
+Examples Where AI Was Wrong
+
+Example 1: Prisma Schema Recovery
+
+AI Suggestion
+
+After connecting Prisma to a remote database, AI suggested generating the schema from the database structure.
+
+Issue
+
+The connected database belonged to a different project, which produced an incorrect schema.
+
+Resolution
+
+I restored the original schema from Git history, regenerated the Prisma client, and verified all migrations before proceeding.
+
+⸻
+
+Example 2: User Authentication Design
+
+AI Suggestion
+
+Use mandatory email and password fields for every user.
+
+Issue
+
+The application supports guest participants who do not have login credentials.
+
+Resolution
+
+I modified the design by introducing guest-user handling and separating authenticated users from guest participants.
+
+⸻
+
+Example 3: Deployment Readiness
+
+AI Suggestion
+
+The project appeared deployment-ready after local tests passed.
+
+Issue
+
+The production database configuration was not fully aligned with the intended deployment environment.
+
+Resolution
+
+I verified the database configuration, applied migrations to the correct environment, reseeded the database, and reran the full test suite before deployment.
+
+⸻
+
+Validation Process
+
+Every AI-generated suggestion was reviewed before adoption.
+
+Validation methods included:
+
+* Prisma migration verification
+* Database integrity checks
+* Vitest unit testing
+* Playwright end-to-end testing
+* Manual UI testing
+* Production build verification (npm run build)
+* Deployment testing on the hosted environment
+
+AI was used as a development assistant, while all final implementation decisions, testing, debugging, and submission responsibility remained with me.
