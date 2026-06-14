@@ -22,7 +22,7 @@ export function ShellLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
-  const isPublicPage = pathname === '/login' || pathname === '/signup';
+  const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/signup';
   
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [darkMode, setDarkMode] = React.useState(false);

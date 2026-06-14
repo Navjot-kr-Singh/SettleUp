@@ -50,7 +50,7 @@ export class ExpenseRepository {
         },
       });
       return expense;
-    });
+    }, { maxWait: 15000, timeout: 30000 });
   }
 
   async findExpenseById(id: string, includeDeleted = false) {
@@ -138,6 +138,6 @@ export class ExpenseRepository {
           paidBy: true,
         },
       });
-    });
+    }, { maxWait: 15000, timeout: 30000 });
   }
 }
