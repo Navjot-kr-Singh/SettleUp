@@ -676,7 +676,7 @@ export class ImportDryRunService {
           proposalsCount: totalProposals,
           balanceImpacts: balanceImpactList,
         };
-      });
+      }, { maxWait: 15000, timeout: 30000 });
 
       // Commit successful: status transitions, and IMPORT_COMPLETE is written outside transaction
       const finalSession = await this.prisma.importSession.findUnique({

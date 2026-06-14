@@ -390,7 +390,7 @@ export class CommitImportService {
             notes: `Commit complete. ${expensesCreated} expenses, ${settlementsCreated} settlements created.`,
           },
         });
-      });
+      }, { maxWait: 15000, timeout: 30000 });
 
       // Post-commit zero-sum validation
       await this.validateZeroSumBalance(session.groupId, 'POST');

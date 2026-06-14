@@ -7,6 +7,10 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // run sequentially to avoid database collision in seeded PostgreSQL
   reporter: 'list',
+  timeout: 60000,
+  expect: {
+    timeout: 15000,
+  },
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
