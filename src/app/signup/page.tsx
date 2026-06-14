@@ -106,7 +106,7 @@ export default function SignupPage() {
           router.replace('/dashboard');
         }, 1500);
       }
-    } catch (err: any) {
+    } catch {
       setError('An unexpected registration error occurred.');
       setLoading(false);
     }

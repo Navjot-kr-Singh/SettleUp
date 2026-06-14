@@ -27,7 +27,9 @@ export default function LoginPage() {
       const params = new URLSearchParams(window.location.search);
       const emailParam = params.get('email');
       if (emailParam) {
-        setEmail(emailParam);
+        setTimeout(() => {
+          setEmail(emailParam);
+        }, 0);
       }
     }
   }, []);
@@ -65,7 +67,7 @@ export default function LoginPage() {
           router.replace('/dashboard');
         }, 1500);
       }
-    } catch (err: any) {
+    } catch {
       setError('An unexpected login error occurred.');
     } finally {
       setLoading(false);
@@ -97,7 +99,7 @@ export default function LoginPage() {
           router.replace('/dashboard');
         }, 1500);
       }
-    } catch (err: any) {
+    } catch {
       setError('Demo Login error.');
     } finally {
       setLoading(false);
@@ -214,7 +216,7 @@ export default function LoginPage() {
 
         <div className="text-center mt-2">
           <p className="text-xs text-vault-text-muted font-sans font-medium">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" id="signup-link" className="font-bold text-vault-accent hover:underline">
               Create one →
             </Link>
